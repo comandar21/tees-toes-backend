@@ -1,21 +1,24 @@
 "use strict";
-/**
- * Define all your API web-routes
- *
- * @author Faiz A. Farooqui <faiz@geekyants.com>
- */
 Object.defineProperty(exports, "__esModule", { value: true });
+const authenticateJWT_1 = require("../middleware/authenticateJWT");
 const express_1 = require("express");
-const expressJwt = require("express-jwt");
-const Locals_1 = require("../providers/Locals");
-const Home_1 = require("../controllers/Api/Home");
-const Login_1 = require("../controllers/Api/Auth/Login");
-const Register_1 = require("../controllers/Api/Auth/Register");
-const RefreshToken_1 = require("../controllers/Api/Auth/RefreshToken");
 const router = express_1.Router();
-router.get('/', Home_1.default.index);
-router.post('/auth/login', Login_1.default.perform);
-router.post('/auth/register', Register_1.default.perform);
-router.post('/auth/refresh-token', expressJwt({ secret: Locals_1.default.config().appSecret }), RefreshToken_1.default.perform);
+const cors = require('cors');
+const user_1 = require("./user");
+router.use('/user', user_1.default);
+router.use(authenticateJWT_1.authenticateJWT);
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const ENABLE_SENTRY = false;
+router.use((error, _request, response, _next) => {
+    const status = error.status || 500;
+    if (!IS_PRODUCTION && status >= 500)
+        console.log(error);
+    response.status(status);
+    response.json({
+        status: error.status,
+        message: ENABLE_SENTRY ? response.sentry : error.message,
+        error: {}
+    });
+});
 exports.default = router;
-//# sourceMappingURL=Api.js.map
+//# sourceMappingURL=api.js.map

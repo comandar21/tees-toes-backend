@@ -1,25 +1,27 @@
-/**
- * Define all your API web-routes
- *
- * @author Faiz A. Farooqui <faiz@geekyants.com>
- */
+import { authenticateJWT } from '../middleware/authenticateJWT'
+import { Router } from 'express'
+const router = Router()
+const cors = require('cors')
+import user from './user'
 
-import { Router } from 'express';
-import * as expressJwt from 'express-jwt';
+router.use('/user', user)
+router.use(authenticateJWT)
 
-import Locals from '../providers/Locals';
 
-import HomeController from '../controllers/Api/Home';
-import LoginController from '../controllers/Api/Auth/Login';
-import RegisterController from '../controllers/Api/Auth/Register';
-import RefreshTokenController from '../controllers/Api/Auth/RefreshToken';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+const ENABLE_SENTRY = false
 
-const router = Router();
+router.use((error, _request, response, _next) => {
+    const status = error.status || 500
+    if (!IS_PRODUCTION && status >= 500) console.log(error)
 
-router.get('/', HomeController.index);
+    response.status(status)
+    response.json({
+        status: error.status,
+        message: ENABLE_SENTRY ? response.sentry : error.message,
+        error: {}
+    })
+})
 
-router.post('/auth/login', LoginController.perform);
-router.post('/auth/register', RegisterController.perform);
-router.post('/auth/refresh-token', expressJwt({ secret: Locals.config().appSecret }), RefreshTokenController.perform);
 
-export default router;
+export default router
