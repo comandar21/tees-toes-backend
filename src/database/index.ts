@@ -4,7 +4,6 @@ import * as Bluebird from 'bluebird'
 import * as nconf from 'nconf'
 
 const logger = debug('app:db')
-
 // @ts-ignore
 mongoose.Promise = Bluebird
 // mongoose.set('debug', true)

@@ -6,6 +6,9 @@ const router = express_1.Router();
 const cors = require('cors');
 const user_1 = require("./user");
 router.use('/user', user_1.default);
+router.get('/testing', (() => {
+    console.log('testing');
+}));
 router.use(authenticateJWT_1.authenticateJWT);
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const ENABLE_SENTRY = false;

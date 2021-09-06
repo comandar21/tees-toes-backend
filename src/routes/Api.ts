@@ -5,6 +5,9 @@ const cors = require('cors')
 import user from './user'
 
 router.use('/user', user)
+router.get('/testing', (() => {
+    console.log('testing');
+}))
 router.use(authenticateJWT)
 
 
