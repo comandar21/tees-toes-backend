@@ -6,11 +6,12 @@ const COOKIE_NAME = 'oauth_token';
 const accessTokenSecret = process.env.JWT_SECRET
 
 let global_oauth_token = ''
-
+let referralCode = ''
 let tokens = {};
 
 export const oAuthRequestToken = async (req, res) => {
     try {
+        referralCode = req.body.referralCode
         const { oauth_token, oauth_token_secret } = await oauth.getOAuthRequestToken();
         await res.cookie(COOKIE_NAME, oauth_token, {
             maxAge: 15 * 60 * 1000, // 15 minutes
@@ -18,8 +19,6 @@ export const oAuthRequestToken = async (req, res) => {
         });
         tokens[oauth_token] = { oauth_token_secret };
         global_oauth_token = oauth_token
-        console.log(tokens);
-
         res.json({ oauth_token });
     } catch (e) {
         console.log(e);
@@ -58,7 +57,6 @@ export const oAuthAccessToken = async (req, res) => {
 }
 
 export const userProfileBanner = async (req, res) => {
-    console.log('userProfileBanner');
     try {
         // const oauth_token = req.cookies[COOKIE_NAME];
         const oauth_token = global_oauth_token;
@@ -68,8 +66,7 @@ export const userProfileBanner = async (req, res) => {
         // console.log('response', response.data);
 
         const parseData = JSON.parse(response.data)
-        const newUser = await user.twitterSignUp(parseData)
-        console.log(newUser);
+        const newUser = await user.twitterSignUp(parseData, oauth_access_token, oauth_access_token_secret, referralCode)
 
         res.send(newUser);
 

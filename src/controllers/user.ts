@@ -8,10 +8,29 @@ const oauthCallback = process.env.FRONTEND_URL;
 const oauth = require('../library/oauth-promise')(oauthCallback);
 const COOKIE_NAME = 'oauth_token';
 const accessTokenSecret = process.env.JWT_SECRET
+const Twitter = require('twitter');
+import * as _ from 'underscore'
+const nodemailer = require("nodemailer");
 
-let global_oauth_token = ''
+let transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+        user: process.env.EMAIL_ID,
+        pass: process.env.PASS,
+    },
+});
 
-let tokens = {};
+const sendEmail = async (email) => {
+    await transporter.sendMail({
+        from: process.env.EMAIL_ID,
+        to: email,
+        subject: "Maha Referral Program",
+        text: `Congratulation you earned 1 MAHA`,
+        html: `<b>Congratulation you earned 1 MAHA</b>`,
+    });
+}
 
 const getRandomString = () => {
     const randomChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -22,36 +41,113 @@ const getRandomString = () => {
     return result;
 }
 
-export const twitterSignUp = async (data) => {
 
-    const checkUser = await User.findOne({ twitter_id: String(data.id) })
+export const twitterSignUp = async (data, oauth_access_token, oauth_access_token_secret, referCode) => {
+    console.log('referCode', referCode);
+    try {
+        const checkUser = await User.findOne({ twitter_id: String(data.id) }).populate('')
+        //1246916938678169600
+        if (checkUser === null) {
 
-    if (checkUser === null) {
+            const token = jwt.sign({ twitter_id: String(data.id) }, accessTokenSecret)
 
-        const token = jwt.sign({ twitter_id: String(data.id) }, accessTokenSecret)
+            const referralCode = await getRandomString()
+            const newUser = new User({
+                name: data.name,
+                twitter_id: data.id,
+                twitter_id_str: data.id_str,
+                twitter_screen_name: data.screen_name,
+                twitter_followers: data.followers_count,
+                twitter_age: new Date(data.created_at).toISOString(),
+                referral_link: `${process.env.REDIRECT_URL}/${referralCode}`,
+                referral_code: referralCode,
+                jwt: token,
+                twitter_oauth_access_token: oauth_access_token,
+                twitter_oauth_access_token_secret: oauth_access_token_secret,
+            })
+            await newUser.save()
 
-        const referralCode = await getRandomString()
+            console.log('52', referCode);
+            if (referCode !== '') {
+                const referredByUser = await User.findOne({ referral_code: referCode }).populate('')
+                if (referredByUser) {
+                    const newReferral = new Referral({
+                        referredBy: referredByUser._id,
+                        referredUser: newUser._id
+                    })
+                }
+            }
+            // const twitterMahaFollow = await checkMahaTwitterFollow(oauth_access_token, oauth_access_token_secret, newUser._id)
+            return newUser
+        }
+        else {
+            const token = jwt.sign({ twitter_id: checkUser.id }, accessTokenSecret)
+            checkUser.set('jwt', token)
+            checkUser.set('twitter_oauth_access_token', oauth_access_token)
+            checkUser.set('twitter_oauth_access_token_secret', oauth_access_token_secret)
+            await checkUser.save()
+            // const twitterMahaFollow = await checkMahaTwitterFollow(oauth_access_token, oauth_access_token_secret, checkUser._id)
 
-        const newUser = new User({
-            name: data.name,
-            twitter_id: data.id,
-            twitter_id_str: data.id_str,
-            twitter_screen_name: data.screen_name,
-            twitter_followers: data.followers_count,
-            twitter_age: new Date(data.created_at).toISOString(),
-            referral_link: `${process.env.REDIRECT_URL}/${referralCode}`,
-            referral_code: referralCode,
-            jwt: token,
-        })
-
-        await newUser.save()
-        return newUser
+            return checkUser
+        }
+    } catch (e) {
+        console.log(e)
     }
-    else {
-        const token = jwt.sign({ twitter_id: checkUser.id }, accessTokenSecret)
-        checkUser.set('jwt', token)
-        await checkUser.save()
-        return checkUser
+}
+
+export const checkMahaFollow = async (req, res) => {
+    // const user= req.user
+    const userDetails = await User.findOne({ _id: req.body.id })
+
+    if (userDetails) {
+        const client = new Twitter({
+            consumer_key: process.env.TWITTER_CONSUMER_KEY,
+            consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+            access_token_key: userDetails.twitter_oauth_access_token,
+            access_token_secret: userDetails.twitter_oauth_access_token_secret
+        });
+        await client.get('friends/ids.json', async (error, response) => {
+            console.log('response', response);
+            if (response && response.ids.includes(1246916938678169600)) {
+                userDetails.set('follow_twitter', true)
+                await userDetails.save()
+
+                const referralData = await Referral.findOne({ referredUser: userDetails._id })
+
+                if (referralData) {
+                    const referredByUser = await User.findOne({ _id: referralData.referredBy })
+                    User.updateOne({ _id: referralData.referredBy }, { $inc: { mahaRewards: 1 } }, {}, _.noop)
+                    User.updateOne({ _id: referralData.referredUser }, { $inc: { mahaRewards: 1 } }, {}, _.noop)
+
+                    await sendEmail(referredByUser.email)
+                    await sendEmail(userDetails.email)
+
+
+                    referralData.set('status', 'completed')
+                    await referralData.save()
+                }
+            }
+            else {
+                console.log(error)
+            }
+            // console.log(response.ids)
+            res.send({
+                _id: userDetails.id,
+                follow_twitter: userDetails.follow_twitter,
+                follow_channel: userDetails.follow_channel,
+                twitter_followers: userDetails.twitter_followers,
+                name: userDetails.name,
+                twitter_id: userDetails.twitter_id,
+                twitter_id_str: userDetails.twitter_id_str,
+                twitter_screen_name: userDetails.twitter_screen_name,
+                twitter_age: userDetails.twitter_age,
+                referral_link: userDetails.referral_link,
+                referral_code: userDetails.referral_code,
+                jwt: userDetails.jwt,
+                email: userDetails.email,
+                walletAddress: userDetails.walletAddress
+            })
+        });
     }
 }
 
@@ -118,87 +214,4 @@ export const referralList = async (req, res) => {
     else {
         res.send({ error: 'user not found' })
     }
-}
-
-export const oAuthRequestToken = async (req, res) => {
-    try {
-        const { oauth_token, oauth_token_secret } = await oauth.getOAuthRequestToken();
-        await res.cookie(COOKIE_NAME, oauth_token, {
-            maxAge: 15 * 60 * 1000, // 15 minutes
-            httpOnly: true,
-        });
-        tokens[oauth_token] = { oauth_token_secret };
-        global_oauth_token = oauth_token
-        console.log(tokens);
-
-        res.json({ oauth_token });
-    } catch (e) {
-        console.log(e);
-    }
-
-}
-
-export const oAuthAccessToken = async (req, res) => {
-
-    const { oauth_token: req_oauth_token, oauth_verifier } = req.body;
-    // const oauth_token = req.cookies[COOKIE_NAME];
-    const oauth_token = global_oauth_token
-
-    const oauth_token_secret = tokens[oauth_token].oauth_token_secret;
-
-    // if (oauth_token !== req_oauth_token) {
-    //     res.status(403).json({ message: "Request tokens do not match" });
-    //     return;
-    // }
-
-    if (global_oauth_token !== req_oauth_token) {
-        res.status(403).json({ message: "Request tokens do not match" });
-        return;
-    }
-
-    const { oauth_access_token, oauth_access_token_secret } = await oauth
-        .getOAuthAccessToken(global_oauth_token, oauth_token_secret, oauth_verifier);
-
-    tokens[global_oauth_token] = { ...tokens[global_oauth_token], oauth_access_token, oauth_access_token_secret };
-
-    res.json({ success: true });
-
-    // } catch (error) {
-    //     res.status(403).json({ message: "Missing access token" });
-    // }
-}
-
-export const userProfileBanner = async (req, res) => {
-    console.log('userProfileBanner');
-    try {
-        // const oauth_token = req.cookies[COOKIE_NAME];
-        const oauth_token = global_oauth_token;
-
-        const { oauth_access_token, oauth_access_token_secret } = tokens[oauth_token];
-        const response = await oauth.getProtectedResource("https://api.twitter.com/1.1/account/verify_credentials.json", "GET", oauth_access_token, oauth_access_token_secret);
-        // console.log('response', response.data);
-
-        const parseData = JSON.parse(response.data)
-        const newUser = await twitterSignUp(parseData)
-        console.log(newUser);
-
-        res.send(newUser);
-
-    } catch (error) {
-        res.status(403).json({ message: "Missing, invalid, or expired tokens" });
-    }
-
-}
-
-export const twitterLogout = async (req, res) => {
-
-    try {
-        const oauth_token = req.cookies[COOKIE_NAME];
-        delete tokens[oauth_token];
-        res.cookie(COOKIE_NAME, {}, { maxAge: -1 });
-        res.json({ success: true });
-    } catch (error) {
-        res.status(403).json({ message: "Missing, invalid, or expired tokens" });
-    }
-
 }

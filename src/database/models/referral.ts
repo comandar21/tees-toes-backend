@@ -11,7 +11,7 @@ export interface IReferral {
 }
 
 const schema = new Schema({
-    eferredBy: { type: Schema.Types.ObjectId, ref: 'Users' },
+    referredBy: { type: Schema.Types.ObjectId, ref: 'Users' },
     referredUser: { type: Schema.Types.ObjectId, ref: 'Users' },
     status: { type: String, enum: ['pending', 'completed'], default: 'pending' }
 })

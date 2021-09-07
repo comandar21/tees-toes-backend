@@ -8,7 +8,7 @@ const router = Router()
 router.use(authenticateJWT)
 router.get('/test', ((req, res) => res.send({ message: 'hello world' })))
 router.post('/addEmailContractAddress', ((req, res) => { User.addEmailContractAddress(req, res) }))
-
+router.post('/checkMahaFollow', (req, res) => { User.checkMahaFollow(req, res) })
 router.post('/editProfile', (req, res) => { User.editProfile(req, res) })
 router.get('/referralList', (req, res) => { User.referralList(req, res) })
 

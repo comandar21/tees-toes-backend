@@ -17,6 +17,9 @@ export interface IUser {
     referral_code: string,
     follow_twitter: boolean,
     follow_channel: boolean,
+    twitter_oauth_access_token: string
+    twitter_oauth_access_token_secret: string,
+    mahaRewards: number,
 }
 
 const schema = new Schema({
@@ -34,6 +37,9 @@ const schema = new Schema({
     referral_code: String,
     follow_twitter: { type: Boolean, default: false },
     follow_channel: { type: Boolean, default: false },
+    twitter_oauth_access_token: String,
+    twitter_oauth_access_token_secret: String,
+    mahaRewards: { type: Number, default: 0 },
 })
 
 schema.plugin(timestamps)
