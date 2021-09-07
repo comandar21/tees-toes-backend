@@ -43,7 +43,6 @@ const getRandomString = () => {
 
 
 export const twitterSignUp = async (data, oauth_access_token, oauth_access_token_secret, referCode) => {
-    console.log('referCode', referCode);
     try {
         const checkUser = await User.findOne({ twitter_id: String(data.id) }).populate('')
         //1246916938678169600
@@ -67,7 +66,6 @@ export const twitterSignUp = async (data, oauth_access_token, oauth_access_token
             })
             await newUser.save()
 
-            console.log('52', referCode);
             if (referCode !== '') {
                 const referredByUser = await User.findOne({ referral_code: referCode }).populate('')
                 if (referredByUser) {
@@ -107,8 +105,7 @@ export const checkMahaFollow = async (req, res) => {
             access_token_secret: userDetails.twitter_oauth_access_token_secret
         });
         await client.get('friends/ids.json', async (error, response) => {
-            console.log('response', response);
-            if (response && response.ids.includes(1246916938678169600)) {
+            if (response && response.ids.includes(process.env.TWITTER_MAHADAOID)) {
                 userDetails.set('follow_twitter', true)
                 await userDetails.save()
 
