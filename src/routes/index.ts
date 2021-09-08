@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import api from './api'
+import api from './mahaApi'
 import twitter from './twitter'
 
 const packageJson = require('../../package.json')
