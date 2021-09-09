@@ -73,6 +73,8 @@ export const twitterSignUp = async (data, oauth_access_token, oauth_access_token
                         referredBy: referredByUser._id,
                         referredUser: newUser._id
                     })
+                    await newReferral.save()
+                    User.updateOne({ _id: referredByUser._id }, { $inc: { mahaReferrals: 1 } }, {}, _.noop)
                 }
             }
             // const twitterMahaFollow = await checkMahaTwitterFollow(oauth_access_token, oauth_access_token_secret, newUser._id)
@@ -95,63 +97,71 @@ export const twitterSignUp = async (data, oauth_access_token, oauth_access_token
 
 export const checkMahaFollow = async (req, res) => {
     // const user= req.user
-    const userDetails = await User.findOne({ _id: req.body.id })
+    try {
+        const userDetails = await User.findOne({ _id: req.body.id })
+        let result = {}
+        if (userDetails) {
 
-    if (userDetails) {
-
-        const client = new Twitter({
-            consumer_key: process.env.TWITTER_CONSUMER_KEY,
-            consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
-            access_token_key: userDetails.twitter_oauth_access_token,
-            access_token_secret: userDetails.twitter_oauth_access_token_secret
-        });
-        await client.get('friends/ids.json', async (error, response) => {
-            if (error) {
-                console.log(error);
-                res.send(error)
-            }
-
-            if (response && response.ids.includes(Number(process.env.TWITTER_MAHADAOID))) {
-                userDetails.set('follow_twitter', true)
-                await userDetails.save()
-
-                const referralData = await Referral.findOne({ referredUser: userDetails._id })
-
-                if (referralData) {
-                    const referredByUser = await User.findOne({ _id: referralData.referredBy })
-                    User.updateOne({ _id: referralData.referredBy }, { $inc: { mahaRewards: 1 } }, {}, _.noop)
-                    User.updateOne({ _id: referralData.referredUser }, { $inc: { mahaRewards: 1 } }, {}, _.noop)
-
-                    await sendEmail(referredByUser.email)
-                    await sendEmail(userDetails.email)
-
-
-                    referralData.set('status', 'completed')
-                    await referralData.save()
+            const client = new Twitter({
+                consumer_key: process.env.TWITTER_CONSUMER_KEY,
+                consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+                access_token_key: userDetails.twitter_oauth_access_token,
+                access_token_secret: userDetails.twitter_oauth_access_token_secret
+            });
+            await client.get('friends/ids.json', async (error, response) => {
+                if (error) {
+                    result = { error: error }
+                    console.log(error);
+                    // res.send(error)
                 }
-            }
-            else {
-                console.log(error)
-            }
-            // console.log(response.ids)
-        });
-        res.send({
-            _id: userDetails.id,
-            follow_twitter: userDetails.follow_twitter,
-            follow_channel: userDetails.follow_channel,
-            twitter_followers: userDetails.twitter_followers,
-            name: userDetails.name,
-            twitter_id: userDetails.twitter_id,
-            twitter_id_str: userDetails.twitter_id_str,
-            twitter_screen_name: userDetails.twitter_screen_name,
-            twitter_age: userDetails.twitter_age,
-            referral_link: userDetails.referral_link,
-            referral_code: userDetails.referral_code,
-            jwt: userDetails.jwt,
-            email: userDetails.email,
-            walletAddress: userDetails.walletAddress
-        })
+
+                else if (response && response.ids.includes(Number(process.env.TWITTER_MAHADAOID))) {
+                    userDetails.set('follow_twitter', true)
+                    await userDetails.save()
+
+                    const referralData = await Referral.findOne({ referredUser: userDetails._id })
+
+                    if (referralData) {
+                        const referredByUser = await User.findOne({ _id: referralData.referredBy })
+                        User.updateOne({ _id: referralData.referredBy }, { $inc: { mahaRewards: 1 } }, {}, _.noop)
+                        User.updateOne({ _id: referralData.referredUser }, { $inc: { mahaRewards: 1 } }, {}, _.noop)
+
+                        await sendEmail(referredByUser.email)
+                        await sendEmail(userDetails.email)
+
+
+                        referralData.set('status', 'completed')
+                        await referralData.save()
+                    }
+                }
+                result = {
+                    _id: userDetails.id,
+                    follow_twitter: userDetails.follow_twitter,
+                    follow_channel: userDetails.follow_channel,
+                    twitter_followers: userDetails.twitter_followers,
+                    name: userDetails.name,
+                    twitter_id: userDetails.twitter_id,
+                    twitter_id_str: userDetails.twitter_id_str,
+                    twitter_screen_name: userDetails.twitter_screen_name,
+                    twitter_age: userDetails.twitter_age,
+                    referral_link: userDetails.referral_link,
+                    referral_code: userDetails.referral_code,
+                    jwt: userDetails.jwt,
+                    email: userDetails.email,
+                    walletAddress: userDetails.walletAddress,
+                    mahaReferrals: userDetails.mahaReferrals,
+                    mahaRewards: userDetails.mahaRewards
+                }
+                // console.log(response.ids)
+                console.log(result);
+
+                res.send(result)
+            });
+        }
+    } catch (e) {
+
     }
+
 }
 
 export const twitterSignIn = async (req, res) => {
@@ -183,25 +193,34 @@ export const editProfile = async (req, res) => {
 }
 
 export const addEmailContractAddress = async (req, res) => {
-    const checkUser = await User.findOne({ twitter_id: req.body.twitter_id })
-    if (checkUser) {
-        checkUser.set('email', req.body.email)
-        checkUser.set('walletAddress', req.body.walletAddress)
-        await checkUser.save()
-        if (req.body.referralCode) {
-            const checkReferredBy = await User.findOne({ referral_code: req.body.referralCode })
-            if (checkReferredBy) {
-                const newReferral = new Referral({
-                    referredBy: checkReferredBy.id,
-                    referredUser: checkUser.id
-                })
-                await newReferral.save()
-            }
-        }
-        res.send(checkUser)
+    const checkEmailWalletAddress = await User
+        .findOne({ $or: [{ email: req.body.email }, { walletAddress: req.body.walletAddress }] })
+    if (checkEmailWalletAddress) {
+        res.send({ success: false })
     }
     else {
-        res.send({ error: 'cannot find user' })
+        const checkUser = await User.findOne({ twitter_id: req.body.twitter_id })
+        if (checkUser) {
+            console.log('checkUser');
+
+            checkUser.set('email', req.body.email)
+            checkUser.set('walletAddress', req.body.walletAddress)
+            await checkUser.save()
+            if (req.body.referralCode) {
+                const checkReferredBy = await User.findOne({ referral_code: req.body.referralCode })
+                if (checkReferredBy) {
+                    const newReferral = new Referral({
+                        referredBy: checkReferredBy.id,
+                        referredUser: checkUser.id
+                    })
+                    await newReferral.save()
+                }
+            }
+            res.send(checkUser)
+        }
+        else {
+            res.send({ error: 'cannot find user' })
+        }
     }
 }
 

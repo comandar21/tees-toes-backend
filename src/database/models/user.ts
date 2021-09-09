@@ -20,6 +20,7 @@ export interface IUser {
     twitter_oauth_access_token: string
     twitter_oauth_access_token_secret: string,
     mahaRewards: number,
+    mahaReferrals: number
 }
 
 const schema = new Schema({
@@ -40,6 +41,7 @@ const schema = new Schema({
     twitter_oauth_access_token: String,
     twitter_oauth_access_token_secret: String,
     mahaRewards: { type: Number, default: 0 },
+    mahaReferrals: { type: Number, default: 0 },
 })
 
 schema.plugin(timestamps)
