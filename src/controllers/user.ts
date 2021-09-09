@@ -98,6 +98,7 @@ export const checkMahaFollow = async (req, res) => {
     const userDetails = await User.findOne({ _id: req.body.id })
 
     if (userDetails) {
+
         const client = new Twitter({
             consumer_key: process.env.TWITTER_CONSUMER_KEY,
             consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
@@ -105,7 +106,12 @@ export const checkMahaFollow = async (req, res) => {
             access_token_secret: userDetails.twitter_oauth_access_token_secret
         });
         await client.get('friends/ids.json', async (error, response) => {
-            if (response && response.ids.includes(process.env.TWITTER_MAHADAOID)) {
+            if (error) {
+                console.log(error);
+                res.send(error)
+            }
+
+            if (response && response.ids.includes(Number(process.env.TWITTER_MAHADAOID))) {
                 userDetails.set('follow_twitter', true)
                 await userDetails.save()
 
@@ -128,23 +134,23 @@ export const checkMahaFollow = async (req, res) => {
                 console.log(error)
             }
             // console.log(response.ids)
-            res.send({
-                _id: userDetails.id,
-                follow_twitter: userDetails.follow_twitter,
-                follow_channel: userDetails.follow_channel,
-                twitter_followers: userDetails.twitter_followers,
-                name: userDetails.name,
-                twitter_id: userDetails.twitter_id,
-                twitter_id_str: userDetails.twitter_id_str,
-                twitter_screen_name: userDetails.twitter_screen_name,
-                twitter_age: userDetails.twitter_age,
-                referral_link: userDetails.referral_link,
-                referral_code: userDetails.referral_code,
-                jwt: userDetails.jwt,
-                email: userDetails.email,
-                walletAddress: userDetails.walletAddress
-            })
         });
+        res.send({
+            _id: userDetails.id,
+            follow_twitter: userDetails.follow_twitter,
+            follow_channel: userDetails.follow_channel,
+            twitter_followers: userDetails.twitter_followers,
+            name: userDetails.name,
+            twitter_id: userDetails.twitter_id,
+            twitter_id_str: userDetails.twitter_id_str,
+            twitter_screen_name: userDetails.twitter_screen_name,
+            twitter_age: userDetails.twitter_age,
+            referral_link: userDetails.referral_link,
+            referral_code: userDetails.referral_code,
+            jwt: userDetails.jwt,
+            email: userDetails.email,
+            walletAddress: userDetails.walletAddress
+        })
     }
 }
 
