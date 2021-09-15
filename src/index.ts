@@ -1,18 +1,25 @@
 require('dotenv').config()
 import * as nconf from 'nconf'
 import * as User from '../src/controllers/user'
+const { errorHandler, logger } = require('forest-express');
+
+const {
+  ensureAuthenticated,
+  PUBLIC_ROUTES,
+} = require('forest-express-mongoose');
+
 // setup nconf
 nconf.argv()
-	.env()
-	.defaults({
-		DATABASE_NAME: 'maha-referral',
-		DATABASE_URI: 'mongodb://127.0.0.1:27017/maha-referral',
-		JWT_SECRET: 'secret_keyboard_cat',
-		SITE_URL: 'http://localhost:3000',
-	})
-	.required(['DATABASE_URI',
-		'DATABASE_NAME', 'JWT_SECRET',
-	])
+  .env()
+  .defaults({
+    DATABASE_NAME: 'maha-referral',
+    DATABASE_URI: 'mongodb://127.0.0.1:27017/maha-referral',
+    JWT_SECRET: 'secret_keyboard_cat',
+    SITE_URL: 'http://localhost:3000',
+  })
+  .required(['DATABASE_URI',
+    'DATABASE_NAME', 'JWT_SECRET',
+  ])
 
 import * as bodyParser from 'body-parser'
 import * as cors from 'cors'
@@ -38,40 +45,75 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '100mb' }))
 
 app.use(morgan('dev'))
 
-
-// app.use(express.static('avatar'));
-// app.use(express.static('post'));
 app.use(routes)
 app.use(cookieParser());
 
-// const testCorsOptions = {
-// 	origin: 'http://locahost:3000',
-// 	methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
-// 	optionsSuccessStatus: 200,
-// 	credentials: true,
-// 	allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'device-remember-token', 'Access-Control-Allow-Origin', 'Origin', 'Accept', 'x-jwt', 'Access-Control-Allow-Credentials', 'Access-Control-Allow-Headers', 'Access-Control-Allow-Methods', 'content-type']
-// };
-// app.use(cors(testCorsOptions));
+const whitelist = [/\.forestadmin\.com$/]; //white list consumers
+const testCorsOptions = {
+  origin: function (origin, callback) {
+    if (whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
+  methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
+  optionsSuccessStatus: 200,
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'device-remember-token', 'Access-Control-Allow-Origin', 'Origin', 'Accept', 'x-jwt', 'Access-Control-Allow-Credentials', 'Access-Control-Allow-Headers', 'Access-Control-Allow-Methods', 'content-type']
+};
+app.use(cors(testCorsOptions));
 
-// const corsOptions = {
-// 	origin: "*",
-// 	// allowedHeaders: ['Authorization', 'X-Requested-With', 'Content-Type'],
-// 	allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'device-remember-token', 'Access-Control-Allow-Origin', 'Origin', 'Accept', 'x-jwt', 'Access-Control-Allow-Credentials', 'Access-Control-Allow-Headers', 'Access-Control-Allow-Methods', 'content-type'],
-// 	credentials: true
-// }
-// app.use(cors(corsOptions))
+const addForestAdmin = async (app) => {
 
+  // console.log()
+  app.use(cors({
+    origin: [/\.forestadmin\.com$/],
+    allowedHeaders: ['Authorization', 'X-Requested-With', 'Content-Type'],
+    credentials: true
+  }))
 
-// app.use(function (req, res, next) {
-// 	res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
-// 	res.header("Access-Control-Allow-Headers", "Origin, Accept, Access-Control-Allow-Origin");
-// 	next();
-// });
+  app.use('/forest', (request, response, next) => {
+    if (PUBLIC_ROUTES.includes(request.url)) {
+      return next()
+    }
+    return ensureAuthenticated(request, response, next)
+  })
 
+  const corsConfig: any = {
+    origin: [/\.forestadmin\.com$/],
+    allowedHeaders: ['Authorization', 'X-Requested-With', 'Content-Type'],
+    maxAge: 86400, // NOTICE: 1 day
+    credentials: true,
+  }
 
-// app.set("views", path.join(process.env.ROOT_PATH, "views"));
-// app.set("view engine", "ejs");
-// app.use(express.static(path.join(process.env.ROOT_PATH, "/css")))
+  app.use('/forest/authentication', cors({
+    ...corsConfig,
+    // The null origin is sent by browsers for redirected AJAX calls
+    // we need to support this in authentication routes because OIDC
+    // redirects to the callback route
+    origin: corsConfig.origin.concat('null')
+  }))
+
+  app.use(await require('forest-express-mongoose').init({
+    modelsDir: path.join(__dirname, '/database/models'),
+    configDir: path.join(__dirname, '/database'),
+    envSecret: process.env.FOREST_ENV_SECRET,
+    authSecret: process.env.FOREST_AUTH_SECRET,
+    mongoose
+  }))
+
+  app.use('/forest', jwt({
+    secret: process.env.FOREST_AUTH_SECRET,
+    credentialsRequired: false,
+    algorithms: ['RS256']
+  }))
+  app.use('/forest', errorHandler({ logger }));
+  app.use(cors(corsConfig))
+}
+
+addForestAdmin(app)
+
 
 const port = nconf.get('PORT') || 4410
 

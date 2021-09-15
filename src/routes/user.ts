@@ -10,6 +10,8 @@ router.post('/addEmailContractAddress', ((req, res) => { User.addEmailContractAd
 router.post('/checkMahaFollow', (req, res) => { User.checkMahaFollow(req, res) })
 router.post('/editProfile', (req, res) => { User.editProfile(req, res) })
 router.get('/referralList', (req, res) => { User.referralList(req, res) })
+router.post('/getUser', (req, res) => { User.getUser(req, res) })
+router.get('/referralCSV', (req, res) => { User.referralCSV(req, res) })
 router.use(authenticateJWT)
 
 router.use(ensureLoggedIn)
