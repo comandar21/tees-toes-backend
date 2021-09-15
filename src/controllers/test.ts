@@ -1,33 +1,20 @@
-import Request from "request-promise";
-import axios from 'axios'
-import { sendRequest } from "../library/utils";
-const Twitter = require('twitter');
-export const test = async () => {
 
-    const response = await axios(
-        {
-            url: 'https://api.twitter.com/1.1/followers/ids.json',
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAALpLNgEAAAAAfY3Az3dZ3h%2F6Ku4mLH8zoYmaxHc%3DbiKtOfBKcRIeuCkM4K1rutekhoHoW4uowNv6Ee3QNZGs1kTTgO',
-                'Content-Type': 'Application/json'
-            }
-        })
-    console.log(response.data);
+require('dotenv').config()
+
+const sgMail = require('@sendgrid/mail')
+sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+const msg = {
+    to: 'ani.p1995@gmail.com', // Change to your recipient
+    from: 'mahatracker2021@gmail.com', // Change to your verified sender
+    subject: 'Maha Referral Program',
+    text: 'and easy to do anywhere, even with Node.js',
+    html: '<strong>and easy to do anywhere, even with Node.js</strong>',
 }
-
-const twitter = async () => {
-    const client = new Twitter({
-        consumer_key: 'JTA2224x1MdcGjfcIVloSq0ys',
-        consumer_secret: 'U3NnxiwyerYoQMpeR1F9FRtdD2xiJ4ujiJAXWb1U84jHycD2wm',
-        bearer_token: 'AAAAAAAAAAAAAAAAAAAAAGHU%2BgAAAAAAzPWgY7yvgzOKs08mckk88KDKsR0%3DWmzMcsPGdZf6zUVZV37jUz8kyWctgwVIj04mWoVWn2Us0prmcM'
-    });
-
-    client.get('favorites/list', function (error, tweets, response) {
-        if (error) throw error;
-        console.log(tweets);  // The favorites.
-        console.log(response);  // Raw response object.
-    });
-}
-
-twitter()
+sgMail
+    .send(msg)
+    .then(() => {
+        console.log('Email sent')
+    })
+    .catch((error) => {
+        console.log('error', error.response.body)
+    })
