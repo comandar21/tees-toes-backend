@@ -148,8 +148,8 @@ export const checkMahaFollow = async (req, res) => {
             const referredByUser = await User.findOne({ _id: referralData.referredBy })
             User.updateOne({ _id: referralData.referredBy }, { $inc: { mahaRewards: 1 } }, {}, _.noop)
             User.updateOne({ _id: referralData.referredUser }, { $inc: { mahaRewards: 1 } }, {}, _.noop)
-            const senderMessage = `Congratulation you Earned 1 MAHA referring to ${userDetails.email}`
-            const receiverMessage = `Congratulation you Earned 1 MAHA by joining the community`
+            const senderMessage = `Yayyy! You have received 1 MAHA for referring ${userDetails.email} to MahaDAO.`
+            const receiverMessage = `Yayyy! You have received 1 MAHA. `
             await sendEmail(referredByUser.email, senderMessage)
             await sendEmail(userDetails.email, receiverMessage)
 
