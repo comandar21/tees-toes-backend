@@ -280,6 +280,19 @@ export const getUser = async (req, res) => {
   }
 }
 
+export const getUserProfile = async (req, res) => {
+  const twitterId = req.body.twitterId
+  const userDetails = await User.findOne({ twitter_id: twitterId })
+  if (userDetails) {
+    delete userDetails.twitter_oauth_access_token
+    delete userDetails.twitter_oauth_access_token_secret
+    res.send(userDetails)
+  }
+  else {
+    res.send({ error: 'no user found' })
+  }
+}
+
 export const referralCSV = async (req, res) => {
   const csvWriter = createCsvWriter({
     path: 'TwitterAnalytic.csv',
