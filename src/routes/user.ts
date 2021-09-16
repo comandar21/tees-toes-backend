@@ -9,11 +9,11 @@ router.get('/test', ((req, res) => res.send({ message: 'hello world' })))
 router.post('/addEmailContractAddress', ((req, res) => { User.addEmailContractAddress(req, res) }))
 router.post('/checkMahaFollow', (req, res) => { User.checkMahaFollow(req, res) })
 router.post('/editProfile', (req, res) => { User.editProfile(req, res) })
-router.get('/referralList', (req, res) => { User.referralList(req, res) })
 router.post('/getUser', (req, res) => { User.getUser(req, res) })
 router.post('/getUserProfile', (req, res) => { User.getUserProfile(req, res) })
 router.get('/referralCSV', (req, res) => { User.referralCSV(req, res) })
 router.use(authenticateJWT)
+router.get('/referralList', (req, res) => { User.referralList(req, res) })
 
 router.use(ensureLoggedIn)
 

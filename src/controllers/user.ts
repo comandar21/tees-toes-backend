@@ -33,24 +33,30 @@ const sendEmail = async (email, message) => {
   //     text: `Congratulation you earned 1 MAHA`,
   //     html: `<b>Congratulation you earned 1 MAHA</b>`,
   // });
+  try {
 
-  const msg = {
-    to: email, // Change to your recipient
-    from: process.env.EMAIL_ID, // Change to your verified sender
-    subject: 'Maha Referral Program',
-    text: `${message}`,
-    html: `<strong>${message}</strong>`,
+    const msg = {
+      to: email, // Change to your recipient
+      from: process.env.EMAIL_ID, // Change to your verified sender
+      subject: 'Maha Referral Program',
+      text: `${message}`,
+      html: `<strong>${message}</strong>`,
+    }
+    console.log(msg);
+
+    sgMail
+      .send(msg)
+      .then(() => {
+        console.log('Email sent')
+      })
+      .catch((error) => {
+        // console.log('error', error.response.body)
+      })
+  } catch (e) {
+    console.log(e);
+
   }
-  console.log(msg);
 
-  sgMail
-    .send(msg)
-    .then(() => {
-      console.log('Email sent')
-    })
-    .catch((error) => {
-      console.log('error', error.response.body)
-    })
 }
 
 const getRandomString = () => {
@@ -65,6 +71,7 @@ const getRandomString = () => {
 
 export const twitterSignUp = async (data, oauth_access_token, oauth_access_token_secret, referCode) => {
   try {
+
     const checkUser = await User.findOne({ twitter_id: String(data.id) }).populate('')
     //1246916938678169600
     if (checkUser === null) {
@@ -96,21 +103,62 @@ export const twitterSignUp = async (data, oauth_access_token, oauth_access_token
             referredUser: newUser._id
           })
           await newReferral.save()
+          newUser.set('referredBy', referredByUser.referral_code)
+          await newUser.save()
           User.updateOne({ _id: referredByUser._id }, { $inc: { mahaReferrals: 1 } }, {}, _.noop)
         }
       }
+      const newUserProfile = {
+        _id: newUser.id,
+        follow_twitter: newUser.follow_twitter,
+        follow_channel: newUser.follow_channel,
+        twitter_followers: newUser.twitter_followers,
+        name: newUser.name,
+        twitter_id: newUser.twitter_id,
+        twitter_id_str: newUser.twitter_id_str,
+        twitter_screen_name: newUser.twitter_screen_name,
+        twitter_age: newUser.twitter_age,
+        referral_link: newUser.referral_link,
+        referral_code: newUser.referral_code,
+        jwt: newUser.jwt,
+        email: newUser.email,
+        walletAddress: newUser.walletAddress,
+        mahaReferrals: newUser.mahaReferrals,
+        mahaRewards: newUser.mahaRewards,
+        referredBy: newUser.referredBy || ''
+      }
       // const twitterMahaFollow = await checkMahaTwitterFollow(oauth_access_token, oauth_access_token_secret, newUser._id)
-      return newUser
+      return newUserProfile
     }
     else {
-      const token = jwt.sign({ twitter_id: checkUser.id }, accessTokenSecret)
+      const token = jwt.sign({ twitter_id: checkUser.twitter_id }, accessTokenSecret)
       checkUser.set('jwt', token)
       checkUser.set('twitter_oauth_access_token', oauth_access_token)
       checkUser.set('twitter_oauth_access_token_secret', oauth_access_token_secret)
       await checkUser.save()
       // const twitterMahaFollow = await checkMahaTwitterFollow(oauth_access_token, oauth_access_token_secret, checkUser._id)
 
-      return checkUser
+      const checkUserProfile = {
+        _id: checkUser.id,
+        follow_twitter: checkUser.follow_twitter,
+        follow_channel: checkUser.follow_channel,
+        twitter_followers: checkUser.twitter_followers,
+        name: checkUser.name,
+        twitter_id: checkUser.twitter_id,
+        twitter_id_str: checkUser.twitter_id_str,
+        twitter_screen_name: checkUser.twitter_screen_name,
+        twitter_age: checkUser.twitter_age,
+        referral_link: checkUser.referral_link,
+        referral_code: checkUser.referral_code,
+        jwt: checkUser.jwt,
+        email: checkUser.email,
+        walletAddress: checkUser.walletAddress,
+        mahaReferrals: checkUser.mahaReferrals,
+        mahaRewards: checkUser.mahaRewards,
+        referredBy: checkUser.referredBy || ''
+
+      }
+      return checkUserProfile
     }
   } catch (e) {
     console.log(e)
@@ -175,7 +223,8 @@ export const checkMahaFollow = async (req, res) => {
           email: userDetails.email,
           walletAddress: userDetails.walletAddress,
           mahaReferrals: userDetails.mahaReferrals,
-          mahaRewards: userDetails.mahaRewards
+          mahaRewards: userDetails.mahaRewards,
+          referredBy: userDetails.referredBy || ''
         }
         // console.log(response.ids)
         console.log(result);
@@ -210,7 +259,28 @@ export const editProfile = async (req, res) => {
     checkUser.set('follow_channel', req.body.follow_channel || checkUser.follow_channel)
 
     await checkUser.save()
-    res.send(checkUser)
+
+    const userProfile = {
+      _id: checkUser.id,
+      follow_twitter: checkUser.follow_twitter,
+      follow_channel: checkUser.follow_channel,
+      twitter_followers: checkUser.twitter_followers,
+      name: checkUser.name,
+      twitter_id: checkUser.twitter_id,
+      twitter_id_str: checkUser.twitter_id_str,
+      twitter_screen_name: checkUser.twitter_screen_name,
+      twitter_age: checkUser.twitter_age,
+      referral_link: checkUser.referral_link,
+      referral_code: checkUser.referral_code,
+      jwt: checkUser.jwt,
+      email: checkUser.email,
+      walletAddress: checkUser.walletAddress,
+      mahaReferrals: checkUser.mahaReferrals,
+      mahaRewards: checkUser.mahaRewards,
+      referredBy: checkUser.referredBy || ''
+
+    }
+    res.send(userProfile)
   }
   else {
     res.send({ error: 'cannot find user' })
@@ -247,7 +317,28 @@ export const addEmailContractAddress = async (req, res) => {
           await newReferral.save()
         }
       }
-      res.send(checkUser)
+
+      const userProfile = {
+        _id: checkUser.id,
+        follow_twitter: checkUser.follow_twitter,
+        follow_channel: checkUser.follow_channel,
+        twitter_followers: checkUser.twitter_followers,
+        name: checkUser.name,
+        twitter_id: checkUser.twitter_id,
+        twitter_id_str: checkUser.twitter_id_str,
+        twitter_screen_name: checkUser.twitter_screen_name,
+        twitter_age: checkUser.twitter_age,
+        referral_link: checkUser.referral_link,
+        referral_code: checkUser.referral_code,
+        jwt: checkUser.jwt,
+        email: checkUser.email,
+        walletAddress: checkUser.walletAddress,
+        mahaReferrals: checkUser.mahaReferrals,
+        mahaRewards: checkUser.mahaRewards,
+        referredBy: checkUser.referredBy || ''
+      }
+
+      res.send(userProfile)
     }
     else {
       res.send({ error: 'cannot find user' })
@@ -256,16 +347,22 @@ export const addEmailContractAddress = async (req, res) => {
 }
 
 export const referralList = async (req, res) => {
-  const user = req.user
-  const checkUser = await User.findOne({ referral_code: user.twitter_id })
-  if (checkUser) {
-    const referralUsers = await Referral
-      .find({ referredBy: checkUser.id })
-      .populate({ path: 'referredUser', select: 'email' })
-    res.send(referralUsers)
-  }
-  else {
-    res.send({ error: 'user not found' })
+  try {
+    const user = req.user
+    const checkUser = await User.findOne({ twitter_id: user.twitter_id })
+
+    if (checkUser) {
+      const referralUsers = await Referral
+        .find({ referredBy: checkUser.id })
+        .populate({ path: 'referredUser', select: 'email' })
+      res.send(referralUsers)
+    }
+    else {
+      res.send({ error: 'user not found' })
+    }
+  } catch (e) {
+    console.log(e);
+
   }
 }
 
@@ -284,9 +381,27 @@ export const getUserProfile = async (req, res) => {
   const twitterId = req.body.twitterId
   const userDetails = await User.findOne({ twitter_id: twitterId })
   if (userDetails) {
-    delete userDetails.twitter_oauth_access_token
-    delete userDetails.twitter_oauth_access_token_secret
-    res.send(userDetails)
+    const userProfile = {
+      _id: userDetails.id,
+      follow_twitter: userDetails.follow_twitter,
+      follow_channel: userDetails.follow_channel,
+      twitter_followers: userDetails.twitter_followers,
+      name: userDetails.name,
+      twitter_id: userDetails.twitter_id,
+      twitter_id_str: userDetails.twitter_id_str,
+      twitter_screen_name: userDetails.twitter_screen_name,
+      twitter_age: userDetails.twitter_age,
+      referral_link: userDetails.referral_link,
+      referral_code: userDetails.referral_code,
+      jwt: userDetails.jwt,
+      email: userDetails.email,
+      walletAddress: userDetails.walletAddress,
+      mahaReferrals: userDetails.mahaReferrals,
+      mahaRewards: userDetails.mahaRewards,
+      referredBy: userDetails.referredBy || ''
+
+    }
+    res.send(userProfile)
   }
   else {
     res.send({ error: 'no user found' })
