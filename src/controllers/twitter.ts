@@ -60,7 +60,7 @@ export const oAuthAccessToken = async (req, res) => {
 
 export const userProfileBanner = async (req, res) => {
   try {
-    const oauth_token = req.headers.access_token
+    const oauth_token = req.headers['access-token']
     // const oauth_token = global_oauth_token;
 
     const { oauth_access_token, oauth_access_token_secret } = tokens[oauth_token];
