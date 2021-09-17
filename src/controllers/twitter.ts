@@ -18,6 +18,8 @@ export const oAuthRequestToken = async (req, res) => {
       httpOnly: true,
     });
     tokens[oauth_token] = { oauth_token_secret };
+    console.log(oauth_token);
+
     res.json({ oauth_token });
   } catch (e) {
     console.log('error 24', e);
@@ -43,6 +45,7 @@ export const oAuthAccessToken = async (req, res) => {
       .getOAuthAccessToken(oauth_token, oauth_token_secret, oauth_verifier);
 
     tokens[oauth_token] = { ...tokens[oauth_token], oauth_access_token, oauth_access_token_secret };
+    console.log(tokens);
 
     res.json({ success: true });
 
