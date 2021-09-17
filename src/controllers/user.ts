@@ -25,7 +25,7 @@ let transporter = nodemailer.createTransport({
   },
 });
 
-const sendEmail = async (email, message) => {
+const sendEmail = async (emailData, templateId) => {
   // await transporter.sendMail({
   //     from: process.env.EMAIL_ID,
   //     to: email,
@@ -36,11 +36,13 @@ const sendEmail = async (email, message) => {
   try {
 
     const msg = {
-      to: email, // Change to your recipient
+      to: emailData.to_email, // Change to your recipient
       from: process.env.EMAIL_ID, // Change to your verified sender
       subject: 'Maha Referral Program',
-      text: `${message}`,
-      html: `<strong>${message}</strong>`,
+      // text: `${message}`,
+      templateId: templateId,
+      dynamic_template_data: emailData
+      // html: `<strong>${message}</strong>`,
     }
     console.log(msg);
 
@@ -196,10 +198,18 @@ export const checkMahaFollow = async (req, res) => {
             const referredByUser = await User.findOne({ _id: referralData.referredBy })
             User.updateOne({ _id: referralData.referredBy }, { $inc: { mahaRewards: 1 } }, {}, _.noop)
             User.updateOne({ _id: referralData.referredUser }, { $inc: { mahaRewards: 1 } }, {}, _.noop)
-            const senderMessage = `Yayyy! You have received 1 MAHA for referring ${userDetails.email} to MahaDAO.`
-            const receiverMessage = `Yayyy! You have received 1 MAHA. `
-            await sendEmail(referredByUser.email, senderMessage)
-            await sendEmail(userDetails.email, receiverMessage)
+            const referrerData = {
+              first_name: referredByUser.name,
+              referee_name: userDetails.name,
+              to_email: referredByUser.email
+            }
+            const refereeData = {
+              first_name: userDetails.name,
+              referrer_name: referredByUser.name,
+              to_email: userDetails.email
+            }
+            await sendEmail(referrerData, 'd-27034206b677427eaecf6ddf3e8ff95a')
+            await sendEmail(refereeData, 'd-ac15ca6f15024b5588224b78956af899')
 
 
             referralData.set('status', 'completed')
@@ -299,14 +309,26 @@ export const addEmailContractAddress = async (req, res) => {
   else {
     const checkUser = await User.findOne({ twitter_id: req.body.twitter_id })
     if (checkUser) {
-      console.log('checkUser');
       checkUser.set('email', req.body.email)
       checkUser.set('walletAddress', req.body.walletAddress)
       await checkUser.save()
-      const emailMessage = 'Welcome to MahaDAO Referral Program'
-      console.log(emailMessage);
-
-      await sendEmail(req.body.email, emailMessage)
+      const referredUser = await User.findOne({ referral_code: checkUser.referredBy })
+      if (referredUser) {
+        const emailData = {
+          referrer_name: referredUser.name,
+          to_email: checkUser.email,
+          referral_link: checkUser.referral_link
+        }
+        await sendEmail(emailData, 'd-0a264b4c808b4ec2afd1d00fb68b55e5')
+      }
+      else {
+        const emailData = {
+          first_name: checkUser.name,
+          to_email: checkUser.email,
+        }
+        await sendEmail(emailData, 'd-a8fe643c0bbd42dcabc645fc5283ffb8')
+      }
+      // const emailMessage = 'Welcome to MahaDAO Referral Program'
       if (req.body.referralCode) {
         const checkReferredBy = await User.findOne({ referral_code: req.body.referralCode })
         if (checkReferredBy) {
