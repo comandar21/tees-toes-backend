@@ -29,7 +29,7 @@ export const oAuthRequestToken = async (req, res) => {
 
 export const oAuthAccessToken = async (req, res) => {
   console.log('body', req.body);
-  console.log('headers', req.headers.access_token)
+  console.log('headers', req.headers)
 
   try {
     const { oauth_token: req_oauth_token, oauth_verifier } = req.body;
