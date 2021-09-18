@@ -61,9 +61,8 @@ const testCorsOptions = {
   optionsSuccessStatus: 200,
   credentials: true,
   headers: '*',
-  // allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'device-remember-token', 'Access-Control-Allow-Origin', 'Origin', 'Accept', 'x-jwt', 'Access-Control-Allow-Credentials', 'Access-Control-Allow-Headers', 'Access-Control-Allow-Methods', 'content-type', 'access_token']
-  allowedHeaders: '*'
-
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'device-remember-token', 'Access-Control-Allow-Origin', 'Origin', 'Accept', 'x-jwt', 'Access-Control-Allow-Credentials', 'Access-Control-Allow-Headers', 'Access-Control-Allow-Methods', 'content-type', 'access-token']
+  //allowedHeaders: '*'
 };
 app.use(cors(testCorsOptions));
 
