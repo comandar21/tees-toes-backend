@@ -1,5 +1,6 @@
 require('dotenv').config()
 import User from '../database/models/user'
+import EmailCounter from '../database/models/emailCounter'
 import Referral from '../database/models/referral'
 import * as Bluebird from 'bluebird'
 import * as jwt from 'jsonwebtoken'
@@ -10,6 +11,7 @@ const COOKIE_NAME = 'oauth_token';
 const accessTokenSecret = process.env.JWT_SECRET
 const Twitter = require('twitter');
 import * as _ from 'underscore'
+import { log } from 'console'
 const nodemailer = require("nodemailer");
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const sgMail = require('@sendgrid/mail')
@@ -24,6 +26,39 @@ let transporter = nodemailer.createTransport({
     pass: process.env.PASS,
   },
 });
+
+const emailCounter = async () => {
+  let result = false
+  const date = new Date();
+  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+  const newFirstDay = firstDay.setDate(firstDay.getDate() + 1)
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  const newLastDay = lastDay.setDate(lastDay.getDate() + 1)
+
+  const emailCount = await EmailCounter
+    .findOne({ $and: [{ startDate: new Date(newFirstDay).toISOString() }, { endDate: new Date(newLastDay).toISOString() }] })
+
+  if (emailCount) {
+    if (emailCount.count > 100000) {
+      return result
+    }
+    else {
+      result = true
+      emailCount.set('count', emailCount.count + 1)
+      await emailCount.save()
+      return result
+    }
+  }
+  else {
+    const newEmailCounter = new EmailCounter({
+      startDate: firstDay.toISOString(),
+      endDate: lastDay.toISOString()
+    })
+    result = true
+    await newEmailCounter.save()
+    return result
+  }
+}
 
 const sendEmail = async (emailData, templateId) => {
   // await transporter.sendMail({
@@ -44,7 +79,6 @@ const sendEmail = async (emailData, templateId) => {
       dynamic_template_data: emailData
       // html: `<strong>${message}</strong>`,
     }
-    console.log(msg);
 
     sgMail
       .send(msg)
@@ -208,9 +242,14 @@ export const checkMahaFollow = async (req, res) => {
               referrer_name: referredByUser.name,
               to_email: userDetails.email
             }
-            await sendEmail(referrerData, 'd-27034206b677427eaecf6ddf3e8ff95a')
-            await sendEmail(refereeData, 'd-ac15ca6f15024b5588224b78956af899')
-
+            const checkEmailCounter = await emailCounter()
+            if (checkEmailCounter) {
+              await sendEmail(referrerData, 'd-27034206b677427eaecf6ddf3e8ff95a')
+              await sendEmail(refereeData, 'd-ac15ca6f15024b5588224b78956af899')
+            }
+            else {
+              console.log('email limit exceded')
+            }
 
             referralData.set('status', 'completed')
             referralData.set('approvedDate', date.toISOString())
@@ -237,7 +276,6 @@ export const checkMahaFollow = async (req, res) => {
           referredBy: userDetails.referredBy || ''
         }
         // console.log(response.ids)
-        console.log(result);
 
         res.send(result)
       });
@@ -298,12 +336,10 @@ export const editProfile = async (req, res) => {
 }
 
 export const addEmailContractAddress = async (req, res) => {
-  console.log('addEmailContractAddress');
 
   const checkEmailWalletAddress = await User
     .findOne({ $or: [{ email: req.body.email }, { walletAddress: req.body.walletAddress }] })
   if (checkEmailWalletAddress) {
-    console.log('checkEmailWalletAddress');
     res.send({ success: false })
   }
   else {
@@ -313,20 +349,23 @@ export const addEmailContractAddress = async (req, res) => {
       checkUser.set('walletAddress', req.body.walletAddress)
       await checkUser.save()
       const referredUser = await User.findOne({ referral_code: checkUser.referredBy })
-      if (referredUser) {
-        const emailData = {
-          referrer_name: referredUser.name,
-          to_email: checkUser.email,
-          referral_link: checkUser.referral_link
+      const checkEmailCounter = await emailCounter()
+      if (checkEmailCounter) {
+        if (referredUser) {
+          const emailData = {
+            referrer_name: referredUser.name,
+            to_email: checkUser.email,
+            referral_link: checkUser.referral_link
+          }
+          await sendEmail(emailData, 'd-0a264b4c808b4ec2afd1d00fb68b55e5')
         }
-        await sendEmail(emailData, 'd-0a264b4c808b4ec2afd1d00fb68b55e5')
-      }
-      else {
-        const emailData = {
-          first_name: checkUser.name,
-          to_email: checkUser.email,
+        else {
+          const emailData = {
+            first_name: checkUser.name,
+            to_email: checkUser.email,
+          }
+          await sendEmail(emailData, 'd-a8fe643c0bbd42dcabc645fc5283ffb8')
         }
-        await sendEmail(emailData, 'd-a8fe643c0bbd42dcabc645fc5283ffb8')
       }
       // const emailMessage = 'Welcome to MahaDAO Referral Program'
       if (req.body.referralCode) {
@@ -448,7 +487,6 @@ export const referralCSV = async (req, res) => {
   const referrals = await Referral.find({ status: 'completed' })
     .populate({ path: 'referredUser', select: 'email name _id walletAddress twitter_id' })
     .populate({ path: 'referredBy', select: 'email name _id walletAddress twitter_id' })
-  console.log(referrals.length);
 
   if (referrals.length > 0) {
 
