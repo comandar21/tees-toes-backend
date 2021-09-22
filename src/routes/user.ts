@@ -14,6 +14,7 @@ router.post('/getUserProfile', (req, res) => { User.getUserProfile(req, res) })
 router.get('/referralCSV', (req, res) => { User.referralCSV(req, res) })
 router.use(authenticateJWT)
 router.get('/referralList', (req, res) => { User.referralList(req, res) })
+router.get('/referralTree', (req, res) => { User.getReferralTree(req, res) })
 
 router.use(ensureLoggedIn)
 

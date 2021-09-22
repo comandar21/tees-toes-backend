@@ -5,15 +5,19 @@ import Referral from '../database/models/referral'
 import * as Bluebird from 'bluebird'
 import * as jwt from 'jsonwebtoken'
 import fetch from 'node-fetch';
-const oauthCallback = process.env.FRONTEND_URL;
-const oauth = require('../library/oauth-promise')(oauthCallback);
-const COOKIE_NAME = 'oauth_token';
-const accessTokenSecret = process.env.JWT_SECRET
-const Twitter = require('twitter');
 import * as _ from 'underscore'
 import { log } from 'console'
+
+const oauthCallback = process.env.FRONTEND_URL;
+const accessTokenSecret = process.env.JWT_SECRET
+
+const oauth = require('../library/oauth-promise')(oauthCallback);
+const COOKIE_NAME = 'oauth_token';
+const Twitter = require('twitter');
 const nodemailer = require("nodemailer");
+const bluebird = require("bluebird")
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+
 const sgMail = require('@sendgrid/mail')
 sgMail.setApiKey(process.env.SENDGRID_API_KEY)
 
@@ -509,4 +513,20 @@ export const referralCSV = async (req, res) => {
     res.send({ success: true })
   }
   res.send({ error: 'no referrals found' })
+}
+
+export const getReferralTree = async (req, res) => {
+  const userDetails = await User.find({ })
+  console.log(userDetails);
+  
+  let dataArray = []
+  await bluebird.mapSeries(userDetails, (data) => {
+    dataArray.push({
+      label: data.name,
+      id: String(data._id),
+      parentId: null
+    })
+  })
+
+  res.send({ data: dataArray })
 }
