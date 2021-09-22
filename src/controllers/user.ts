@@ -516,15 +516,21 @@ export const referralCSV = async (req, res) => {
 }
 
 export const getReferralTree = async (req, res) => {
-  const userDetails = await User.find({ })
+  const userDetails = await User.find({})
   console.log(userDetails);
-  
+
   let dataArray = []
-  await bluebird.mapSeries(userDetails, (data) => {
+  await bluebird.mapSeries(userDetails, async (data) => {
+    const referralId = await User.findOne({ referral_code: data.referredBy })
+    console.log(referralId)
+    let parentId = null
+    if (referralId) {
+      parentId = String(referralId._id)
+    }
     dataArray.push({
       label: data.name,
       id: String(data._id),
-      parentId: null
+      parentId: parentId
     })
   })
 
