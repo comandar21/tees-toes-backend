@@ -76,7 +76,7 @@ const sendEmail = async (emailData, templateId) => {
 
     const msg = {
       to: emailData.to_email, // Change to your recipient
-      from: process.env.EMAIL_ID, // Change to your verified sender
+      from: 'noreply@mahareferrals.xyz', // Change to your verified sender
       subject: 'Maha Referral Program',
       // text: `${message}`,
       templateId: templateId,
