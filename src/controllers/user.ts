@@ -77,8 +77,8 @@ const sendEmail = async (emailData, templateId) => {
 
     const msg = {
       to: emailData.to_email, // Change to your recipient
-      from: 'noreply@mahareferrals.xyz', // Change to your verified sender
-      subject: 'Maha Referral Program',
+      from: "noreply@mahareferrals.xyz", // Change to your verified sender
+      subject: "Maha Referral Program",
       // text: `${message}`,
       templateId: templateId,
       dynamic_template_data: emailData
