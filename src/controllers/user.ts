@@ -248,8 +248,8 @@ export const checkMahaFollow = async (req, res) => {
             }
             const checkEmailCounter = await emailCounter()
             if (checkEmailCounter) {
-              await sendEmail(referrerData, 'd-27034206b677427eaecf6ddf3e8ff95a')
-              await sendEmail(refereeData, 'd-ac15ca6f15024b5588224b78956af899')
+              await sendEmail(referrerData, ' d-46b96f5b08c84f6a9dcfb66fa5b5d080')
+              await sendEmail(refereeData, 'd-d3d7ec51fcbb43cca6abed30d27b4db4')
             }
             else {
               console.log('email limit exceded')
@@ -361,14 +361,14 @@ export const addEmailContractAddress = async (req, res) => {
             to_email: checkUser.email,
             referral_link: checkUser.referral_link
           }
-          await sendEmail(emailData, 'd-0a264b4c808b4ec2afd1d00fb68b55e5')
+          await sendEmail(emailData, 'd-4cc16d34aad04de6ab22a6138b8e10fe')
         }
         else {
           const emailData = {
             first_name: checkUser.name,
             to_email: checkUser.email,
           }
-          await sendEmail(emailData, 'd-a8fe643c0bbd42dcabc645fc5283ffb8')
+          await sendEmail(emailData, ' d-7740705c270f4814bfb717dd9ae8750e')
         }
       }
       // const emailMessage = 'Welcome to MahaDAO Referral Program'
