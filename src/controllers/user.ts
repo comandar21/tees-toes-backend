@@ -73,6 +73,7 @@ const sendEmail = async (emailData, templateId) => {
   //     html: `<b>Congratulation you earned 1 MAHA</b>`,
   // });
   try {
+    console.log(emailData, templateId)
 
     const msg = {
       to: emailData.to_email, // Change to your recipient
@@ -90,7 +91,7 @@ const sendEmail = async (emailData, templateId) => {
         console.log('Email sent')
       })
       .catch((error) => {
-        // console.log('error', error.response.body)
+        console.log('error', error.response.body)
       })
   } catch (e) {
     console.log(e);
@@ -248,7 +249,7 @@ export const checkMahaFollow = async (req, res) => {
             }
             const checkEmailCounter = await emailCounter()
             if (checkEmailCounter) {
-              await sendEmail(referrerData, ' d-46b96f5b08c84f6a9dcfb66fa5b5d080')
+              await sendEmail(referrerData, 'd-46b96f5b08c84f6a9dcfb66fa5b5d080')
               await sendEmail(refereeData, 'd-d3d7ec51fcbb43cca6abed30d27b4db4')
             }
             else {
@@ -368,7 +369,7 @@ export const addEmailContractAddress = async (req, res) => {
             first_name: checkUser.name,
             to_email: checkUser.email,
           }
-          await sendEmail(emailData, ' d-7740705c270f4814bfb717dd9ae8750e')
+          await sendEmail(emailData, 'd-7740705c270f4814bfb717dd9ae8750e')
         }
       }
       // const emailMessage = 'Welcome to MahaDAO Referral Program'
