@@ -146,7 +146,8 @@ export const twitterSignUp = async (data, oauth_access_token, oauth_access_token
           await newReferral.save()
           newUser.set('referredBy', referredByUser.referral_code)
           await newUser.save()
-          User.updateOne({ _id: referredByUser._id }, { $inc: { mahaReferrals: 1 } }, {}, _.noop)
+          // const result = await User.updateOne({ _id: referredByUser._id }, { $inc: { mahaReferrals: 1 } }, {}, _.noop)
+          // console.log('incremented', result);
         }
       }
       const newUserProfile = {
@@ -354,9 +355,13 @@ export const addEmailContractAddress = async (req, res) => {
       checkUser.set('walletAddress', req.body.walletAddress)
       await checkUser.save()
       const referredUser = await User.findOne({ referral_code: checkUser.referredBy })
+      // referredUser.set('mahaReferrals', referredUser.mahaReferrals + 1)
+      // await referredUser.save()
       const checkEmailCounter = await emailCounter()
       if (checkEmailCounter) {
         if (referredUser) {
+          referredUser.set('mahaReferrals', referredUser.mahaReferrals + 1)
+          await referredUser.save()
           const emailData = {
             referrer_name: referredUser.name,
             to_email: checkUser.email,
@@ -536,4 +541,20 @@ export const getReferralTree = async (req, res) => {
   })
 
   res.send({ data: dataArray })
+}
+
+export const deleteUser = async (req, res) => {
+  console.log('deleteUser')
+  const userId = req.body.id
+  await User.deleteOne({ _id: userId })
+  console.log(userId);
+
+  const referrralData = await Referral.findOne({ referredUser: userId })
+  // const referredBy = await User.findOne({ _id: referrralData.referredBy })
+  // referredBy.set('mahaReferrals', referredBy.mahaReferrals - 1)
+  // await referredBy.save()
+  // await User.updateOne({ _id: referrralData.referredBy }, { $inc: { mahaReferrals: -1 } }, {}, _.noop)
+  await Referral.deleteOne({ referredUser: userId })
+
+  res.send({ success: true })
 }

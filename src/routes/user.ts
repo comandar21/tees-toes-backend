@@ -15,7 +15,7 @@ router.get('/referralCSV', (req, res) => { User.referralCSV(req, res) })
 router.use(authenticateJWT)
 router.get('/referralList', (req, res) => { User.referralList(req, res) })
 router.get('/referralTree', (req, res) => { User.getReferralTree(req, res) })
-
+router.delete('/deleteUser', (req, res) => { User.deleteUser(req, res) })
 router.use(ensureLoggedIn)
 
 export default router
