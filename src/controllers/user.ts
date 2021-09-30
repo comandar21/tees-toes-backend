@@ -420,7 +420,7 @@ export const referralList = async (req, res) => {
     if (checkUser) {
       const referralUsers = await Referral
         .find({ referredBy: checkUser.id })
-        .populate({ path: 'referredUser', select: 'email' })
+        .populate({ path: 'referredUser', select: 'email name' })
       res.send(referralUsers)
     }
     else {
