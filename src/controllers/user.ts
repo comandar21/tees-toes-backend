@@ -546,15 +546,15 @@ export const getReferralTree = async (req, res) => {
 export const deleteUser = async (req, res) => {
   console.log('deleteUser')
   const userId = req.body.id
-  await User.deleteOne({ _id: userId })
-  console.log(userId);
+  const checkUser = await User.findOne({ _id: userId })
+  if (checkUser) {
+    await User.deleteOne({ _id: userId })
+    const referrralData = await Referral.findOne({ referredUser: userId })
+    await Referral.deleteOne({ referredUser: userId })
+    res.send({ success: true })
+  }
+  else {
+    res.send({ success: false })
+  }
 
-  const referrralData = await Referral.findOne({ referredUser: userId })
-  // const referredBy = await User.findOne({ _id: referrralData.referredBy })
-  // referredBy.set('mahaReferrals', referredBy.mahaReferrals - 1)
-  // await referredBy.save()
-  // await User.updateOne({ _id: referrralData.referredBy }, { $inc: { mahaReferrals: -1 } }, {}, _.noop)
-  await Referral.deleteOne({ referredUser: userId })
-
-  res.send({ success: true })
 }
