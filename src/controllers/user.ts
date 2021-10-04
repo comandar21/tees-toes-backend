@@ -2,6 +2,7 @@ require('dotenv').config()
 import User from '../database/models/user'
 import EmailCounter from '../database/models/emailCounter'
 import Referral from '../database/models/referral'
+import MahaRewards from '../database/models/mahaRewards'
 import * as Bluebird from 'bluebird'
 import * as jwt from 'jsonwebtoken'
 import fetch from 'node-fetch';
@@ -248,10 +249,24 @@ export const checkMahaFollow = async (req, res) => {
               referrer_name: referredByUser.name,
               to_email: userDetails.email
             }
+            const newMahaReward = new MahaRewards({
+              uid: userDetails._id,
+              noOfToken: 1,
+              action: 'twitter-referral'
+            })
+            await newMahaReward.save()
+            const newreferredByUserMahaReward = new MahaRewards({
+              uid: referredByUser._id,
+              noOfToken: 1,
+              action: 'referral'
+            })
+            await newreferredByUserMahaReward.save()
             const checkEmailCounter = await emailCounter()
             if (checkEmailCounter) {
-              await sendEmail(referrerData, 'd-46b96f5b08c84f6a9dcfb66fa5b5d080')
-              await sendEmail(refereeData, 'd-d3d7ec51fcbb43cca6abed30d27b4db4')
+              // For the referred person
+              await sendEmail(referrerData, 'd-ac15ca6f15024b5588224b78956af899')
+              // Referral completes a task
+              await sendEmail(refereeData, 'd-27034206b677427eaecf6ddf3e8ff95a')
             }
             else {
               console.log('email limit exceded')
@@ -367,14 +382,16 @@ export const addEmailContractAddress = async (req, res) => {
             to_email: checkUser.email,
             referral_link: checkUser.referral_link
           }
-          await sendEmail(emailData, 'd-4cc16d34aad04de6ab22a6138b8e10fe')
+          //MAHA Referral welcome
+          await sendEmail(emailData, 'd-0a264b4c808b4ec2afd1d00fb68b55e5')
         }
         else {
           const emailData = {
             first_name: checkUser.name,
             to_email: checkUser.email,
           }
-          await sendEmail(emailData, 'd-7740705c270f4814bfb717dd9ae8750e')
+          // Non-referral SignUp
+          await sendEmail(emailData, 'd-a8fe643c0bbd42dcabc645fc5283ffb8')
         }
       }
       // const emailMessage = 'Welcome to MahaDAO Referral Program'
