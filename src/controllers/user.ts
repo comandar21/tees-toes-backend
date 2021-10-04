@@ -263,10 +263,10 @@ export const checkMahaFollow = async (req, res) => {
             await newreferredByUserMahaReward.save()
             const checkEmailCounter = await emailCounter()
             if (checkEmailCounter) {
-              // For the referred person
-              await sendEmail(referrerData, 'd-ac15ca6f15024b5588224b78956af899')
               // Referral completes a task
-              await sendEmail(refereeData, 'd-27034206b677427eaecf6ddf3e8ff95a')
+              await sendEmail(referrerData, 'd-27034206b677427eaecf6ddf3e8ff95a')
+              // For the referred person
+              await sendEmail(refereeData, 'd-ac15ca6f15024b5588224b78956af899')
             }
             else {
               console.log('email limit exceded')
