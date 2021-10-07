@@ -66,60 +66,6 @@ const testCorsOptions = {
 };
 app.use(cors(testCorsOptions));
 
-const addForestAdmin = async (app) => {
-
-  // console.log()
-  app.use(cors({
-    origin: [/\.forestadmin\.com$/],
-    allowedHeaders: ['Authorization', 'X-Requested-With', 'Content-Type'],
-    credentials: true
-  }))
-
-  app.use('/forest', (request, response, next) => {
-    if (PUBLIC_ROUTES.includes(request.url)) {
-      return next()
-    }
-    return ensureAuthenticated(request, response, next)
-  })
-
-  const corsConfig: any = {
-    origin: [/\.forestadmin\.com$/],
-    allowedHeaders: ['Authorization', 'X-Requested-With', 'Content-Type'],
-    maxAge: 86400, // NOTICE: 1 day
-    credentials: true,
-  }
-
-  app.use('/forest/authentication', cors({
-    ...corsConfig,
-    // The null origin is sent by browsers for redirected AJAX calls
-    // we need to support this in authentication routes because OIDC
-    // redirects to the callback route
-    origin: corsConfig.origin.concat('null')
-  }))
-
-  console.log(__dirname);
-
-
-  app.use(await require('forest-express-mongoose').init({
-    modelsDir: path.join(__dirname, '/database/models'),
-    configDir: path.join(__dirname, '/database'),
-    envSecret: process.env.FOREST_ENV_SECRET,
-    authSecret: process.env.FOREST_AUTH_SECRET,
-    mongoose
-  }))
-
-  app.use('/forest', jwt({
-    secret: process.env.FOREST_AUTH_SECRET,
-    credentialsRequired: false,
-    algorithms: ['RS256']
-  }))
-  app.use('/forest', errorHandler({ logger }));
-  app.use(cors(corsConfig))
-}
-
-addForestAdmin(app)
-
-
 const port = nconf.get('PORT') || 4410
 
 // app.use(express.static(path.join(process.env.ROOT_PATH, './client/build')))
