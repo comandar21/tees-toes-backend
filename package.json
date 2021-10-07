@@ -57,6 +57,7 @@
     "pug": ">=3.0.1",
     "request": "^2.88.0",
     "request-promise": "^4.2.6",
+    "require-all": "^3.0.0",
     "rimraf": "^3.0.2",
     "sib-api-v3-sdk": "^8.2.1",
     "tslint": "^5.11.0",
