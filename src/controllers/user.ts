@@ -74,7 +74,6 @@ const sendEmail = async (emailData, templateId) => {
   //     html: `<b>Congratulation you earned 1 MAHA</b>`,
   // });
   try {
-    console.log(emailData, templateId)
 
     const msg = {
       to: emailData.to_email, // Change to your recipient
@@ -89,13 +88,10 @@ const sendEmail = async (emailData, templateId) => {
     sgMail
       .send(msg)
       .then(() => {
-        console.log('Email sent')
       })
       .catch((error) => {
-        console.log('error', error.response.body)
       })
   } catch (e) {
-    console.log(e);
 
   }
 
@@ -148,7 +144,6 @@ export const twitterSignUp = async (data, oauth_access_token, oauth_access_token
           newUser.set('referredBy', referredByUser.referral_code)
           await newUser.save()
           // const result = await User.updateOne({ _id: referredByUser._id }, { $inc: { mahaReferrals: 1 } }, {}, _.noop)
-          // console.log('incremented', result);
         }
       }
       const newUserProfile = {
@@ -204,7 +199,6 @@ export const twitterSignUp = async (data, oauth_access_token, oauth_access_token
       return checkUserProfile
     }
   } catch (e) {
-    console.log(e)
   }
 }
 
@@ -225,7 +219,6 @@ export const checkMahaFollow = async (req, res) => {
       await client.get('friends/ids.json', async (error, response) => {
         if (error) {
           result = { error: error }
-          console.log(error);
           // res.send(error)
         }
 
@@ -271,7 +264,7 @@ export const checkMahaFollow = async (req, res) => {
               // await sendEmail(refereeData, 'd-ac15ca6f15024b5588224b78956af899')
             }
             else {
-              console.log('email limit exceded')
+              res.send({ message: 'email limit exceded' })
             }
 
             referralData.set('status', 'completed')
@@ -298,7 +291,6 @@ export const checkMahaFollow = async (req, res) => {
           mahaRewards: userDetails.mahaRewards,
           referredBy: userDetails.referredBy || ''
         }
-        // console.log(response.ids)
 
         res.send(result)
       });
@@ -535,7 +527,9 @@ export const referralCSV = async (req, res) => {
 
     csvWriter
       .writeRecords(data)
-      .then(() => console.log('The CSV file was written successfully'));
+      .then(() => {
+        // console.log('The CSV file was written successfully')
+      });
 
     res.send({ success: true })
   }
@@ -544,12 +538,10 @@ export const referralCSV = async (req, res) => {
 
 export const getReferralTree = async (req, res) => {
   const userDetails = await User.find({})
-  console.log(userDetails);
 
   let dataArray = []
   await bluebird.mapSeries(userDetails, async (data) => {
     const referralId = await User.findOne({ referral_code: data.referredBy })
-    console.log(referralId)
     let parentId = null
     if (referralId) {
       parentId = String(referralId._id)
@@ -565,7 +557,6 @@ export const getReferralTree = async (req, res) => {
 }
 
 export const deleteUser = async (req, res) => {
-  console.log('deleteUser')
   const userId = req.body.id
   const checkUser = await User.findOne({ _id: userId })
   if (checkUser) {

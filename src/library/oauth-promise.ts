@@ -28,12 +28,10 @@ module.exports = (oauthCallback) => {
     },
 
     getOAuthAccessToken: (oauth_token, oauth_token_secret, oauth_verifier) => {
-      console.log('getOAuthAccessToken', oauth_token, oauth_token_secret, oauth_verifier);
 
       return new Promise((resolve, reject) => {
         _oauth.getOAuthAccessToken(oauth_token, oauth_token_secret, oauth_verifier, (error, oauth_access_token, oauth_access_token_secret, results) => {
           if (error) {
-            console.log('36', error);
             reject(error);
           } else {
             resolve({ oauth_access_token, oauth_access_token_secret, results });

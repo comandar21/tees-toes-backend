@@ -18,23 +18,18 @@ export const oAuthRequestToken = async (req, res) => {
       httpOnly: true,
     });
     tokens[oauth_token] = { oauth_token_secret };
-    console.log(oauth_token);
 
     res.json({ oauth_token });
   } catch (e) {
-    console.log('error 24', e);
   }
 
 }
 
 export const oAuthAccessToken = async (req, res) => {
-  console.log('body', req.body);
-  console.log('headers', req.headers['access-token'])
 
   try {
     const { oauth_token: req_oauth_token, oauth_verifier } = req.body;
     const oauth_token = req.headers['access-token']
-    console.log('oauth_token', oauth_token)
     // const oauth_token = global_oauth_token
     const oauth_token_secret = tokens[oauth_token].oauth_token_secret;
 
@@ -46,7 +41,6 @@ export const oAuthAccessToken = async (req, res) => {
       .getOAuthAccessToken(oauth_token, oauth_token_secret, oauth_verifier);
 
     tokens[oauth_token] = { ...tokens[oauth_token], oauth_access_token, oauth_access_token_secret };
-    console.log(tokens);
 
     res.json({ success: true });
 
@@ -54,7 +48,6 @@ export const oAuthAccessToken = async (req, res) => {
     //     res.status(403).json({ message: "Missing access token" });
     // }
   } catch (e) {
-    console.log('error 52', e);
   }
 }
 
@@ -65,7 +58,6 @@ export const userProfileBanner = async (req, res) => {
 
     const { oauth_access_token, oauth_access_token_secret } = tokens[oauth_token];
     const response = await oauth.getProtectedResource("https://api.twitter.com/1.1/account/verify_credentials.json", "GET", oauth_access_token, oauth_access_token_secret);
-    // console.log('response', response.data);
 
     const parseData = JSON.parse(response.data)
     const newUser = await user.twitterSignUp(parseData, oauth_access_token, oauth_access_token_secret, referralCode)

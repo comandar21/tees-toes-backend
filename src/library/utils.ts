@@ -6,7 +6,7 @@ export const sendRequest = async <T>(
   body?: any,
   token?: string
 ): Promise<T> => {
-  console.log(token);
+  // console.log(token);
 
   if (body == null) {
     const option = {
