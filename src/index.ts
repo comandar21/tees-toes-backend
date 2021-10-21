@@ -48,24 +48,6 @@ app.use(morgan('dev'))
 app.use(cookieParser());
 app.use(routes)
 
-const whitelist = [/\.forestadmin\.com$/, /localhost:\d{4}$/, /\.join\.mahadao\.com$/]; //white list consumers
-const testCorsOptions = {
-  origin: function (origin, callback) {
-    if (whitelist.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(null, false);
-    }
-  },
-  methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
-  optionsSuccessStatus: 200,
-  credentials: true,
-  headers: '*',
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'device-remember-token', 'Access-Control-Allow-Origin', 'Origin', 'Accept', 'x-jwt', 'Access-Control-Allow-Credentials', 'Access-Control-Allow-Headers', 'Access-Control-Allow-Methods', 'content-type', 'access-token']
-  //allowedHeaders: '*'
-};
-app.use(cors(testCorsOptions));
-
 const port = nconf.get('PORT') || 4410
 
 // app.use(express.static(path.join(process.env.ROOT_PATH, './client/build')))

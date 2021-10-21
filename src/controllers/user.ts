@@ -1,6 +1,8 @@
 require('dotenv').config()
 import User from '../database/models/user'
 import EmailCounter from '../database/models/emailCounter'
+import MahaRewardsCounter from '../database/models/mahaRewardsCounter'
+
 import Referral from '../database/models/referral'
 import MahaRewards from '../database/models/mahaRewards'
 import * as Bluebird from 'bluebird'
@@ -9,6 +11,9 @@ import fetch from 'node-fetch';
 import * as _ from 'underscore'
 import { log } from 'console'
 
+const request = require('request');
+
+const secretKey = process.env.RECAPTCHA_SECRETE_KEY
 const oauthCallback = process.env.FRONTEND_URL;
 const accessTokenSecret = process.env.JWT_SECRET
 
@@ -61,6 +66,39 @@ const emailCounter = async () => {
     })
     result = true
     await newEmailCounter.save()
+    return result
+  }
+}
+
+const rewardsCounter = async () => {
+  let result = false
+  const date = new Date();
+  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+  const newFirstDay = firstDay.setDate(firstDay.getDate() + 1)
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  const newLastDay = lastDay.setDate(lastDay.getDate() + 1)
+
+  const rewardsCount = await MahaRewardsCounter
+    .findOne({ $and: [{ startDate: new Date(newFirstDay).toISOString() }, { endDate: new Date(newLastDay).toISOString() }] })
+
+  if (rewardsCount) {
+    if (rewardsCount.count > 5000) {
+      return result
+    }
+    else {
+      result = true
+      rewardsCount.set('count', rewardsCount.count + 0.1)
+      await rewardsCount.save()
+      return result
+    }
+  }
+  else {
+    const newMahaRewardsCounter = new MahaRewardsCounter({
+      startDate: firstDay.toISOString(),
+      endDate: lastDay.toISOString()
+    })
+    result = true
+    await newMahaRewardsCounter.save()
     return result
   }
 }
@@ -230,8 +268,16 @@ export const checkMahaFollow = async (req, res) => {
 
           if (referralData) {
             const referredByUser = await User.findOne({ _id: referralData.referredBy })
-            // User.updateOne({ _id: referralData.referredBy }, { $inc: { mahaRewards: 1 } }, {}, _.noop)
-            // User.updateOne({ _id: referralData.referredUser }, { $inc: { mahaRewards: 1 } }, {}, _.noop)
+
+            // const checkMahaRewards= await rewardsCounter()
+            // if(checkMahaRewards){
+            //   // User.updateOne({ _id: referralData.referredBy }, { $inc: { mahaRewards: 0.1 } }, {}, _.noop)
+            // }
+            // const checkMahaRewards1= await rewardsCounter()
+            // if(checkMahaRewards1){
+            //   // User.updateOne({ _id: referralData.referredUser }, { $inc: { mahaRewards: 0.1 } }, {}, _.noop)
+            // }
+
             const referrerData = {
               first_name: referredByUser.name,
               referee_name: userDetails.name,
@@ -316,10 +362,11 @@ export const twitterSignIn = async (req, res) => {
 
 export const editProfile = async (req, res) => {
   const user = req.user
-  const checkUser = await User.findOne({ twitter_id: user.twitter_id })
+  const checkUser = await User.findOne({ twitter_id: req.body.twitter_id })
   if (checkUser) {
     checkUser.set('follow_twitter', req.body.follow_twitter || checkUser.follow_twitter)
     checkUser.set('follow_channel', req.body.follow_channel || checkUser.follow_channel)
+    checkUser.set('walletAddress', req.body.walletAddress || checkUser.walletAddress)
 
     await checkUser.save()
 
@@ -343,7 +390,10 @@ export const editProfile = async (req, res) => {
       referredBy: checkUser.referredBy || ''
 
     }
-    res.send(userProfile)
+    res.send({
+      userProfile,
+      success: true
+    })
   }
   else {
     res.send({ error: 'cannot find user' })
@@ -351,82 +401,94 @@ export const editProfile = async (req, res) => {
 }
 
 export const addEmailContractAddress = async (req, res) => {
-
-  const checkEmailWalletAddress = await User
-    .findOne({ $or: [{ email: req.body.email }, { walletAddress: req.body.walletAddress }] })
-  if (checkEmailWalletAddress) {
-    res.send({ success: false })
-  }
-  else {
-    const checkUser = await User.findOne({ twitter_id: req.body.twitter_id })
-    if (checkUser) {
-      checkUser.set('email', req.body.email)
-      checkUser.set('walletAddress', req.body.walletAddress)
-      await checkUser.save()
-      const referredUser = await User.findOne({ referral_code: checkUser.referredBy })
-      // referredUser.set('mahaReferrals', referredUser.mahaReferrals + 1)
-      // await referredUser.save()
-      const checkEmailCounter = await emailCounter()
-      if (checkEmailCounter) {
-        if (referredUser) {
-          referredUser.set('mahaReferrals', referredUser.mahaReferrals + 1)
-          await referredUser.save()
-          const emailData = {
-            referrer_name: referredUser.name,
-            to_email: checkUser.email,
-            referral_link: checkUser.referral_link
-          }
-          //MAHA Referral welcome
-          // await sendEmail(emailData, 'd-4cc16d34aad04de6ab22a6138b8e10fe')
-          // await sendEmail(emailData, 'd-0a264b4c808b4ec2afd1d00fb68b55e5')
+  try {
+    const verificationUrl = "https://www.google.com/recaptcha/api/siteverify?secret=" + secretKey + "&response=" + req.body.recaptcha_token + "&remoteip=" + req.connection.remoteAddress;
+    await request(verificationUrl, async (error, response, body) => {
+      body = JSON.parse(body);
+      if (body.success !== undefined && !body.success) {
+        return res.json({ "responseCode": 1, "responseDesc": "Failed captcha verification" });
+      }
+      else {
+        const checkEmailWalletAddress = await User
+          .findOne({ $or: [{ email: req.body.email }, { walletAddress: req.body.walletAddress }] })
+        if (checkEmailWalletAddress) {
+          res.send({ success: false })
         }
         else {
-          const emailData = {
-            first_name: checkUser.name,
-            to_email: checkUser.email,
+          const checkUser = await User.findOne({ twitter_id: req.body.twitter_id })
+          if (checkUser) {
+            checkUser.set('email', req.body.email)
+            checkUser.set('walletAddress', req.body.walletAddress)
+            await checkUser.save()
+            const referredUser = await User.findOne({ referral_code: checkUser.referredBy })
+            // referredUser.set('mahaReferrals', referredUser.mahaReferrals + 1)
+            // await referredUser.save()
+            const checkEmailCounter = await emailCounter()
+            if (checkEmailCounter) {
+              if (referredUser) {
+                referredUser.set('mahaReferrals', referredUser.mahaReferrals + 1)
+                await referredUser.save()
+                const emailData = {
+                  referrer_name: referredUser.name,
+                  to_email: checkUser.email,
+                  referral_link: checkUser.referral_link
+                }
+                //MAHA Referral welcome
+                // await sendEmail(emailData, 'd-4cc16d34aad04de6ab22a6138b8e10fe')
+                // await sendEmail(emailData, 'd-0a264b4c808b4ec2afd1d00fb68b55e5')
+              }
+              else {
+                const emailData = {
+                  first_name: checkUser.name,
+                  to_email: checkUser.email,
+                }
+                // Non-referral SignUp
+                // await sendEmail(emailData, 'd-7740705c270f4814bfb717dd9ae8750e')
+                // await sendEmail(emailData, 'd-a8fe643c0bbd42dcabc645fc5283ffb8')
+              }
+            }
+            // const emailMessage = 'Welcome to MahaDAO Referral Program'
+            if (req.body.referralCode) {
+              const checkReferredBy = await User.findOne({ referral_code: req.body.referralCode })
+              if (checkReferredBy) {
+                const newReferral = new Referral({
+                  referredBy: checkReferredBy.id,
+                  referredUser: checkUser.id
+                })
+                await newReferral.save()
+              }
+            }
+
+            const userProfile = {
+              _id: checkUser.id,
+              follow_twitter: checkUser.follow_twitter,
+              follow_channel: checkUser.follow_channel,
+              twitter_followers: checkUser.twitter_followers,
+              name: checkUser.name,
+              twitter_id: checkUser.twitter_id,
+              twitter_id_str: checkUser.twitter_id_str,
+              twitter_screen_name: checkUser.twitter_screen_name,
+              twitter_age: checkUser.twitter_age,
+              referral_link: checkUser.referral_link,
+              referral_code: checkUser.referral_code,
+              jwt: checkUser.jwt,
+              email: checkUser.email,
+              walletAddress: checkUser.walletAddress,
+              mahaReferrals: checkUser.mahaReferrals,
+              mahaRewards: checkUser.mahaRewards,
+              referredBy: checkUser.referredBy || ''
+            }
+
+            res.send(userProfile)
           }
-          // Non-referral SignUp
-          // await sendEmail(emailData, 'd-7740705c270f4814bfb717dd9ae8750e')
-          // await sendEmail(emailData, 'd-a8fe643c0bbd42dcabc645fc5283ffb8')
+          else {
+            res.send({ error: 'cannot find user' })
+          }
         }
       }
-      // const emailMessage = 'Welcome to MahaDAO Referral Program'
-      if (req.body.referralCode) {
-        const checkReferredBy = await User.findOne({ referral_code: req.body.referralCode })
-        if (checkReferredBy) {
-          const newReferral = new Referral({
-            referredBy: checkReferredBy.id,
-            referredUser: checkUser.id
-          })
-          await newReferral.save()
-        }
-      }
-
-      const userProfile = {
-        _id: checkUser.id,
-        follow_twitter: checkUser.follow_twitter,
-        follow_channel: checkUser.follow_channel,
-        twitter_followers: checkUser.twitter_followers,
-        name: checkUser.name,
-        twitter_id: checkUser.twitter_id,
-        twitter_id_str: checkUser.twitter_id_str,
-        twitter_screen_name: checkUser.twitter_screen_name,
-        twitter_age: checkUser.twitter_age,
-        referral_link: checkUser.referral_link,
-        referral_code: checkUser.referral_code,
-        jwt: checkUser.jwt,
-        email: checkUser.email,
-        walletAddress: checkUser.walletAddress,
-        mahaReferrals: checkUser.mahaReferrals,
-        mahaRewards: checkUser.mahaRewards,
-        referredBy: checkUser.referredBy || ''
-      }
-
-      res.send(userProfile)
-    }
-    else {
-      res.send({ error: 'cannot find user' })
-    }
+    })
+  } catch (e) {
+    res.send(e)
   }
 }
 
