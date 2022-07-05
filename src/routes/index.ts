@@ -1,6 +1,5 @@
 import { Router } from 'express'
-import api from './mahaApi'
-import twitter from './twitter'
+import user from './user'
 
 const packageJson = require('../../package.json')
 const router = Router()
@@ -8,8 +7,7 @@ const cookieParser = require('cookie-parser')
 
 router.use(cookieParser())
 
-router.use('/api', api)
-router.use('/twitter', twitter)
+router.use('/user', user)
 
 
 export default router

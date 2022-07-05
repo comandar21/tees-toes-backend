@@ -13,7 +13,7 @@ nconf.argv()
   .env()
   .defaults({
     DATABASE_NAME: 'maha-referral',
-    DATABASE_URI: 'mongodb://127.0.0.1:27017/maha-referral',
+    DATABASE_URI: 'mongodb://127.0.0.1:27017/tees-totes',
     JWT_SECRET: 'secret_keyboard_cat',
     SITE_URL: 'http://localhost:3000',
   })
@@ -45,8 +45,8 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '100mb' }))
 
 app.use(morgan('dev'))
 
-app.use(cookieParser());
 app.use(routes)
+app.use(cookieParser());
 
 const port = nconf.get('PORT') || 4410
 
