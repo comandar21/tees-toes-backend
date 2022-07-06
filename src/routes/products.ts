@@ -1,14 +1,11 @@
 import { Router } from 'express'
-import * as User from '../controllers/user'
+import * as Products from '../controllers/products'
 import { authenticateJWT } from '../middleware/authenticateJWT'
 import ensureLoggedIn from '../middleware/ensureLoggedIn'
 
 const router = Router()
-router.get("/test", (req, res) => {
-    console.log("testing");
-    res.send({ msg: "success" })
-})
-router.post('/', (req, res) => User.user(req, res))
+router.post('/addProduct', (req, res) => Products.addProduct(req, res))
+// router.get('/getProducts', (req, res) => { Products.getProducts(req, res) })
 router.use(ensureLoggedIn)
 
 export default router

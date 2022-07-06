@@ -20,3 +20,4 @@ export const addProduct = async (req: any, res: any) => {
 
     res.send({ msg: 'product added successfully' })
 }
+

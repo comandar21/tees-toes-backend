@@ -31,7 +31,7 @@ const schema = new Schema({
   city: String,
   country: String,
   jwt: { type: String, private: true },
-  role: { type: String, enum: ['user', 'admin'] },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
 })
 
 schema.plugin(timestamps)

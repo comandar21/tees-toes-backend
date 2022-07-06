@@ -2,7 +2,6 @@ import { Document, Schema, model, Types } from 'mongoose'
 import * as timestamps from 'mongoose-timestamp'
 import * as privatePaths from 'mongoose-private-paths'
 
-
 export interface ICategories {
     name: string,
     code: string
@@ -10,10 +9,6 @@ export interface ICategories {
 
 const schema = new Schema({
     name: String,
-    price: Number,
-    quantity: { type: Number, default: 0 },
-    description: String,
-    image: String,
     code: String
 })
 

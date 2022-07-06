@@ -1,15 +1,15 @@
 import Users from '../database/models/user'
 import * as jwt from 'jsonwebtoken'
 
-let accessTokenSecret = process.env.JWT_SECRET
+let accessTokenSecret = "tees&totes"//process.env.JWT_SECRET
 
 export const user = async (req: any, res: any) => {
   const user = req.body
   const checkUser = await Users.findOne({ email: user.email })
   if (checkUser) {
-    // const accessToken = jwt.sign({ _id: checkUser.id || checkUser._id }, accessTokenSecret)
-    // checkUser.set('jwt', accessToken)
-    // await checkUser.save()
+    const accessToken = jwt.sign({ _id: checkUser.id || checkUser._id }, accessTokenSecret)
+    checkUser.set('jwt', accessToken)
+    await checkUser.save()
     res.send(checkUser)
   }
   else {
@@ -19,8 +19,9 @@ export const user = async (req: any, res: any) => {
       username: user.username,
     })
     await newUser.save()
-    // const accessToken = jwt.sign({ _id: newUser.id || newUser._id }, accessTokenSecret)
-    // newUser.set('jwt', accessToken)
+    const accessToken = jwt.sign({ _id: newUser.id || newUser._id }, accessTokenSecret)
+    newUser.set('jwt', accessToken)
+    await newUser.save()
     res.send(newUser)
   }
 }
